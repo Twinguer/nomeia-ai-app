@@ -1,56 +1,63 @@
-# Welcome to your Expo app 👋
+# Nomeia Aí Rankings (App)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App mobile (Expo) para visualizar rankings do [Nomeia Aí](https://nomeiai.com.br). Usa o **mesmo Supabase** e a **mesma conta** do site web.
 
-## Get started
+## Pré-requisitos
 
-1. Install dependencies
+- Node.js 20+
+- Android Studio (emulador) ou dispositivo físico com Expo Go
+- Credenciais Supabase do projeto `ppsymqrdtjyaguftracc` (iguais ao `.env` da web)
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Configuração
 
 ```bash
-npm run reset-project
+cd Nomeia-Ai_Rankings
+cp .env.example .env
+# Edite .env com EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Executar
 
-### Other setup steps
+```bash
+npm start
+# Ctrl+C e depois, se o QR não conectar na rede local:
+npx expo start -c --tunnel
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- **Celular:** app **Expo Go** → escanear QR (mesma Wi‑Fi ou `--tunnel`).
+- **Android emulador:** abra o AVD no Android Studio primeiro → `adb devices` → tecla `a`.
+- **Web:** tecla `w` (após `npm start`).
 
-## Learn more
+> A tecla `a` só funciona com emulador ligado ou celular via USB com depuração USB.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Estrutura
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+src/
+  app/              # Rotas (Expo Router)
+    index.tsx       # Lista de concursos
+    login.tsx       # Autenticação
+    ranking/[id].tsx # Classificação
+  contexts/         # Auth (Supabase)
+  services/         # API rankings / concursos
+  components/       # UI
+  lib/              # Cliente Supabase
+```
 
-## Join the community
+## Deploy
 
-Join our community of developers creating universal apps.
+- **Não usa a VPS** do site: o app roda no celular e fala direto com o Supabase.
+- Builds de produção: [EAS Build](https://docs.expo.dev/build/introduction/) (`eas build`).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Participação em rankings (app)
+
+Participar, editar gabarito e sair do ranking usam as **mesmas RPCs do site** (`participate_in_ranking`, `update_consolidated_data_and_recalculate`), via Supabase nativo — sem WebView.
+
+**Criar ranking** fica apenas no [site web](https://www.nomeiai.com.br/criar-ranking).
+
+## Próximas fases
+
+- Deep links (`nomeia-rankings://`)
+- Pacote `shared` com a web para lógica de gabarito idêntica em provas muito customizadas
+- Pacote `shared` com a web para lógica de ordenação/desempate idêntica
