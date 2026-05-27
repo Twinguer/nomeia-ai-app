@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { ensureLaunchProSubscriptionIfPromoActive } from '@/domain/ensureLaunchProSubscription';
+import {
+  hasLaunchPromoProAccess,
+  isLaunchProPromoActive,
+  isLaunchPromoSubscription,
+  resolveIsProWithBackend,
+} from '@/domain/launchPromo';
 import { getSupabase } from '@/lib/supabase';
 
 export type SubscriptionPlan = 'free' | 'pro';
@@ -14,6 +21,11 @@ export type Subscription = {
   voucher_code: string | null;
 };
 
+type SubscriptionQueryResult = {
+  subscription: Subscription | null;
+  isProFromBackend: boolean;
+};
+
 function normalizeVoucherCode(code: string): string {
   const trimmed = code.trim().toUpperCase();
   if (!trimmed || trimmed.length > 64) {
@@ -25,48 +37,65 @@ function normalizeVoucherCode(code: string): string {
 export function useSubscription() {
   const { user } = useAuth();
 
-  const { data: subscription, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['subscription', user?.id],
-    queryFn: async () => {
-      const { data, error } = await getSupabase()
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Subscription | null;
+    queryFn: async (): Promise<SubscriptionQueryResult> => {
+      if (!user?.id) {
+        return { subscription: null, isProFromBackend: false };
+      }
+
+      await ensureLaunchProSubscriptionIfPromoActive();
+
+      const [subResult, proResult] = await Promise.all([
+        getSupabase().from('user_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+        getSupabase().rpc('is_user_pro', { p_user_id: user.id }),
+      ]);
+
+      if (subResult.error) throw subResult.error;
+
+      if (proResult.error && __DEV__) {
+        console.warn('[useSubscription] is_user_pro RPC:', proResult.error.message);
+      }
+
+      return {
+        subscription: subResult.data as Subscription | null,
+        isProFromBackend: proResult.data === true,
+      };
     },
     enabled: !!user?.id,
     staleTime: 0,
   });
 
-  const hasSubscription = !!subscription;
-  const isPlanPro = subscription?.plan === 'pro';
-  const isActive = subscription?.is_active === true;
-  const hasValidExpiry =
-    !subscription?.expires_at || new Date(subscription.expires_at) > new Date();
-
-  const isPro = hasSubscription && isPlanPro && isActive && hasValidExpiry;
+  const subscription = data?.subscription ?? null;
+  const isProFromBackend = resolveIsProWithBackend(subscription, data?.isProFromBackend);
+  const isPro = isProFromBackend || hasLaunchPromoProAccess(user?.id);
   const isFree = !isPro;
+  const isLaunchPromo = isPro && isLaunchPromoSubscription(subscription?.voucher_code ?? null);
+  const launchPromoActive = isLaunchProPromoActive();
   const maxEditCount = isPro ? Infinity : 3;
 
   const applyVoucher = async (code: string) => {
     const validatedCode = normalizeVoucherCode(code);
-    const { data, error } = await getSupabase().rpc('apply_voucher', {
+    const { data: result, error } = await getSupabase().rpc('apply_voucher', {
       voucher_code_param: validatedCode,
     });
     if (error) throw error;
     await refetch();
-    return data;
+    return result;
   };
 
   const validateDiscountVoucher = async (code: string) => {
     const validatedCode = normalizeVoucherCode(code);
-    const { data, error } = await getSupabase().rpc('validate_discount_voucher', {
+    const { data: result, error } = await getSupabase().rpc('validate_discount_voucher', {
       voucher_code_param: validatedCode,
     });
     if (error) throw error;
-    return data;
+    return result;
+  };
+
+  const activateLaunchPro = async () => {
+    await ensureLaunchProSubscriptionIfPromoActive();
+    await refetch();
   };
 
   return {
@@ -74,9 +103,12 @@ export function useSubscription() {
     isLoading,
     isPro,
     isFree,
+    isLaunchPromo,
+    launchPromoActive,
     maxEditCount,
     refetch,
     applyVoucher,
     validateDiscountVoucher,
+    activateLaunchPro,
   };
 }

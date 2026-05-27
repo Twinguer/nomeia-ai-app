@@ -18,6 +18,7 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { useNotifications } from '@/hooks/useNotifications';
 import { fetchUserProfileMenu, resolveUserDisplayName } from '@/services/profileService';
 import { getAvatarUrl } from '@/utils/avatarUtils';
+import { NOMEIA_PORTAL_URL } from '@/constants/brand';
 
 export function UserMenu() {
   const router = useRouter();
@@ -89,12 +90,22 @@ export function UserMenu() {
             />
 
             <MenuItem
+              icon="globe-outline"
+              label="Ir ao Portal"
+              colors={colors}
+              onPress={() => {
+                setOpen(false);
+                router.push('/portal');
+              }}
+            />
+
+            <MenuItem
               icon="lock-closed-outline"
               label="Trocar Senha"
               colors={colors}
               onPress={() => {
                 setOpen(false);
-                Linking.openURL('https://www.nomeiai.com.br/auth/reset-password');
+                Linking.openURL(`${NOMEIA_PORTAL_URL}/auth/reset-password`);
               }}
             />
 

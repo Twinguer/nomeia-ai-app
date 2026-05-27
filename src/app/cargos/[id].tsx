@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CargoListCard } from '@/components/CargoListCard';
 import { UserMenu } from '@/components/UserMenu';
 import { useAppTheme } from '@/contexts/AppThemeContext';
-import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/AuthContext';
 import { ESTADOS_BRASILEIROS, getGeneralCard, listCargos } from '@/services/cargosService';
 
@@ -69,20 +68,22 @@ export default function CargosScreen() {
           headerLeft: () => <UserMenu />,
         }}
       />
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
         <Pressable style={styles.backRow} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={Brand.primaryDark} />
-          <Text style={styles.backText}>Voltar para Rankings</Text>
+          <Ionicons name="arrow-back" size={20} color={colors.primaryDark} />
+          <Text style={[styles.backText, { color: colors.primaryDark }]}>Voltar para Rankings</Text>
         </Pressable>
 
         {generalQuery.data ? (
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
               {generalQuery.data.titulo || generalQuery.data.orgao}
             </Text>
             {generalQuery.data.banca ? (
-              <View style={styles.bancaPill}>
-                <Text style={styles.bancaPillText}>{generalQuery.data.banca}</Text>
+              <View style={[styles.bancaPill, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.bancaPillText, { color: colors.primaryDark }]}>
+                  {generalQuery.data.banca}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -90,7 +91,7 @@ export default function CargosScreen() {
 
         {showStatePicker ? (
           <>
-            <Text style={styles.sectionTitle}>Selecione um Estado</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Selecione um Estado</Text>
             <FlatList
               data={[...ESTADOS_BRASILEIROS]}
               keyExtractor={(uf) => uf}
@@ -99,21 +100,29 @@ export default function CargosScreen() {
               contentContainerStyle={styles.stateGrid}
               renderItem={({ item: uf }) => (
                 <Pressable
-                  style={styles.stateCard}
+                  style={[
+                    styles.stateCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() => setSelectedState(uf)}>
-                  <Text style={styles.stateText}>{uf}</Text>
+                  <Text style={[styles.stateText, { color: colors.text }]}>{uf}</Text>
                 </Pressable>
               )}
             />
           </>
         ) : generalQuery.isLoading || cargosQuery.isLoading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={Brand.primary} />
-            <Text style={styles.loadingText}>Carregando cargos...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textMuted }]}>Carregando cargos...</Text>
           </View>
         ) : cargosQuery.isError ? (
           <View style={styles.centered}>
-            <Text style={styles.error}>{(cargosQuery.error as Error).message}</Text>
+            <Text style={[styles.error, { color: colors.danger }]}>
+              {(cargosQuery.error as Error).message}
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -125,22 +134,24 @@ export default function CargosScreen() {
               <RefreshControl
                 refreshing={cargosQuery.isRefetching}
                 onRefresh={() => cargosQuery.refetch()}
-                tintColor={Brand.primary}
+                tintColor={colors.primary}
               />
             }
             ListHeaderComponent={
               generalQuery.data?.isUnified && selectedState ? (
                 <View style={styles.breadcrumb}>
                   <Pressable onPress={() => setSelectedState('')}>
-                    <Text style={styles.breadcrumbLink}>Estados</Text>
+                    <Text style={[styles.breadcrumbLink, { color: colors.primary }]}>Estados</Text>
                   </Pressable>
-                  <Text style={styles.breadcrumbSep}> / </Text>
-                  <Text style={styles.breadcrumbCurrent}>{selectedState}</Text>
+                  <Text style={[styles.breadcrumbSep, { color: colors.textMuted }]}> / </Text>
+                  <Text style={[styles.breadcrumbCurrent, { color: colors.text }]}>{selectedState}</Text>
                 </View>
               ) : null
             }
             ListEmptyComponent={
-              <Text style={styles.empty}>Nenhum cargo encontrado para este filtro.</Text>
+              <Text style={[styles.empty, { color: colors.textMuted }]}>
+                Nenhum cargo encontrado para este filtro.
+              </Text>
             }
           />
         )}
@@ -150,7 +161,7 @@ export default function CargosScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Brand.background },
+  safe: { flex: 1 },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,48 +169,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  backText: { fontSize: 14, fontWeight: '600', color: Brand.primaryDark },
+  backText: { fontSize: 14, fontWeight: '600' },
   header: { paddingHorizontal: 16, paddingBottom: 12 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Brand.text, marginBottom: 8 },
+  headerTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
   bancaPill: {
     alignSelf: 'flex-start',
-    backgroundColor: Brand.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  bancaPillText: { fontSize: 12, fontWeight: '600', color: Brand.primaryDark },
+  bancaPillText: { fontSize: 12, fontWeight: '600' },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     paddingHorizontal: 16,
     marginBottom: 12,
-    color: Brand.text,
   },
   stateGrid: { paddingHorizontal: 12, paddingBottom: 24 },
   stateRow: { gap: 8, marginBottom: 8 },
   stateCard: {
     flex: 1,
-    backgroundColor: Brand.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Brand.border,
     paddingVertical: 16,
     alignItems: 'center',
     marginHorizontal: 4,
   },
-  stateText: { fontSize: 16, fontWeight: '700', color: Brand.text },
+  stateText: { fontSize: 16, fontWeight: '700' },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: Brand.textMuted },
-  error: { color: Brand.danger, textAlign: 'center', padding: 24 },
-  empty: { textAlign: 'center', color: Brand.textMuted, marginTop: 32 },
+  loadingText: {},
+  error: { textAlign: 'center', padding: 24 },
+  empty: { textAlign: 'center', marginTop: 32 },
   breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  breadcrumbLink: { color: Brand.primary, fontWeight: '600' },
-  breadcrumbSep: { color: Brand.textMuted },
-  breadcrumbCurrent: { fontWeight: '700', color: Brand.text },
+  breadcrumbLink: { fontWeight: '600' },
+  breadcrumbSep: {},
+  breadcrumbCurrent: { fontWeight: '700' },
 });

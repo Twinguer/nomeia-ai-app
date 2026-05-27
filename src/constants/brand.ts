@@ -10,3 +10,6 @@ export const Brand = {
   border: '#E2E8F0',
   danger: '#EF4444',
 } as const;
+
+/** Site web completo (criar ranking, estudo, comunidade, etc.) */
+export const NOMEIA_PORTAL_URL = 'https://www.nomeiai.com.br';

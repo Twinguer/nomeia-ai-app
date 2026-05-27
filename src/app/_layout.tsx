@@ -52,6 +52,7 @@ function RootNavigator() {
       />
       <Stack.Screen name="notifications" options={{ headerShown: true }} />
       <Stack.Screen name="participar" options={{ headerShown: true }} />
+      <Stack.Screen name="portal" options={{ headerShown: true }} />
     </Stack>
   );
 }
