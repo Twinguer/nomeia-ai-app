@@ -1,6 +1,7 @@
+import Constants from 'expo-constants';
 import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -30,6 +31,26 @@ function normalizeTargetUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+function appendEmbedCacheBust(url: string, nonce: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set('_nomeia_embed', nonce);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function buildWebViewSource(url: string, nonce: string) {
+  return {
+    uri: appendEmbedCacheBust(url, nonce),
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+    },
+  };
 }
 
 function targetPathname(url: string): string {
@@ -68,9 +89,16 @@ export function AuthenticatedWebView({ targetUrl, onTitleChange }: Props) {
   const [pageReady, setPageReady] = useState(false);
   const redirectCorrectionsRef = useRef(0);
   const lastCorrectionAtRef = useRef(0);
+  const loadNonceRef = useRef(
+    `${Constants.expoConfig?.version ?? '1'}-${Date.now()}`
+  );
 
   const resolvedUrl = useMemo(() => normalizeTargetUrl(targetUrl), [targetUrl]);
   const expectedPath = useMemo(() => targetPathname(resolvedUrl), [resolvedUrl]);
+  const webViewSource = useMemo(
+    () => buildWebViewSource(resolvedUrl, loadNonceRef.current),
+    [resolvedUrl]
+  );
 
   const sessionQuery = useQuery({
     queryKey: ['webview-session'],
@@ -165,6 +193,15 @@ export function AuthenticatedWebView({ targetUrl, onTitleChange }: Props) {
     return buildSessionScripts(sessionQuery.data).beforeContentLoaded;
   }, [buildSessionScripts, sessionQuery.data]);
 
+  useEffect(() => {
+    webRef.current?.clearCache?.(true);
+  }, []);
+
+  const assignWebViewRef = useCallback((node: WebView | null) => {
+    webRef.current = node;
+    node?.clearCache?.(true);
+  }, []);
+
   if (sessionQuery.isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -191,8 +228,9 @@ export function AuthenticatedWebView({ targetUrl, onTitleChange }: Props) {
         </View>
       ) : null}
       <WebView
-        ref={webRef}
-        source={{ uri: resolvedUrl }}
+        key={loadNonceRef.current}
+        ref={assignWebViewRef}
+        source={webViewSource}
         injectedJavaScriptBeforeContentLoaded={beforeContentLoaded}
         onLoadEnd={handleLoadEnd}
         onNavigationStateChange={handleNavigationStateChange}
@@ -200,6 +238,8 @@ export function AuthenticatedWebView({ targetUrl, onTitleChange }: Props) {
         thirdPartyCookiesEnabled
         domStorageEnabled
         javaScriptEnabled
+        cacheEnabled={false}
+        cacheMode={Platform.OS === 'android' ? 'LOAD_NO_CACHE' : undefined}
         originWhitelist={['https://*', 'http://*']}
         setSupportMultipleWindows={Platform.OS === 'android' ? false : undefined}
         style={styles.flex}
